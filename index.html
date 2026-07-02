@@ -11,69 +11,63 @@
         h1 { color: #333; }
         p { color: #666; font-size: 14px; }
         .pay-btn { background-color: #673AB7; color: white; border: none; padding: 14px 28px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 20px; width: 100%; }
-        #status { margin-top: 15px; font-weight: bold; color: #e91e63; }
+        #status { margin-top: 15px; font-weight: bold; color: #e91e63; font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>Welcome to Yetoha</h1>
-    <p>Click below to complete your developer setup transaction.</p>
-    <button class="pay-btn" onclick="startTestPayment()">Pay 1 Test Pi</button>
-    <div id="status"></div>
+    <p>Click below to authorize and complete your developer setup transaction.</p>
+    <button class="pay-btn" onclick="handleAuthAndPayment()">Pay 1 Test Pi</button>
+    <div id="status">Ready to test.</div>
 </div>
 
 <script>
     // Initialize Pi SDK in Sandbox Mode
     Pi.init({ version: "2.0", sandbox: true });
 
-    // Automatically authenticate the user when the page loads
-    window.onload = async function() {
-        try {
-            await Pi.authenticate(['payments'], function(payment) {
-                console.log("Incomplete payment", payment);
-            });
-            document.getElementById('status').innerText = "Pi Wallet Connected!";
-            document.getElementById('status').style.color = "green";
-        } catch (err) {
-            document.getElementById('status').innerText = "Please open this inside the Pi Browser.";
-        }
-    };
-
-    async function startTestPayment() {
+    function handleAuthAndPayment() {
         const statusDiv = document.getElementById('status');
-        statusDiv.style.color = "#e91e63";
-        statusDiv.innerText = "Opening wallet overlay...";
+        statusDiv.style.color = "#673AB7";
+        statusDiv.innerText = "Step 1: Requesting 'payments' permission...";
 
-        try {
-            const payment = await Pi.createPayment({
+        // Step 1: Authenticate and explicitly request permissions first
+        Pi.authenticate(['payments'], function(incompletePayment) {
+            console.log("Incomplete payment detected:", incompletePayment);
+        }).then(function(auth) {
+            // This block ONLY runs if authentication succeeds!
+            statusDiv.style.color = "orange";
+            statusDiv.innerText = "Step 2: Permission granted! Opening wallet...";
+
+            // Step 2: Create the payment now that we definitely have the scope
+            return Pi.createPayment({
                 amount: 1.0,
                 memo: "Testing Yetoha App Production Setup",
                 metadata: { appId: "Yetoha" },
             }, {
                 onReadyForServerApproval: function(paymentId) {
-                    statusDiv.innerText = "Simulating server approval...";
-                    // Tell the Pi Network to open the user's input screen directly
-                    statusDiv.innerText = "Check your screen for wallet passphrase entry!";
+                    statusDiv.innerText = "Payment ready! Please sign in your wallet overlay.";
                 },
                 onReadyForServerCompletion: function(paymentId, txid) {
-                    statusDiv.innerText = "Finalizing transaction...";
+                    statusDiv.innerText = "Finalizing transaction on blockchain...";
                 },
                 onCancel: function(paymentId) {
+                    statusDiv.style.color = "red";
                     statusDiv.innerText = "Transaction cancelled.";
                 },
                 onError: function(error, payment) {
-                    statusDiv.innerText = "Error: " + error.message;
+                    statusDiv.style.color = "red";
+                    statusDiv.innerText = "Payment Error: " + error.message;
                 }
             });
-            
-            statusDiv.style.color = "green";
-            statusDiv.innerText = "Payment Processed!";
-        } catch (err) {
-            statusDiv.innerText = "Error: " + err.message;
-        }
+        }).catch(function(error) {
+            // If the login/scope step fails, show it here
+            statusDiv.style.color = "red";
+            statusDiv.innerText = "Authentication Failed: " + error.message;
+        });
     }
 </script>
 
 </body>
-</html> 
+</html>
