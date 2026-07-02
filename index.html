@@ -4,40 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yetoha - Pi App Test</title>
-    
-    <!-- Load the official Pi Network SDK -->
     <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-    
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px 20px;
-            background-color: #f9f9f9;
-        }
-        .container {
-            max-width: 400px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px 20px; background-color: #f9f9f9; }
+        .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         h1 { color: #333; }
         p { color: #666; font-size: 14px; }
-        .pay-btn {
-            background-color: #673AB7;
-            color: white;
-            border: none;
-            padding: 14px 28px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-top: 20px;
-            width: 100%;
-        }
-        .pay-btn:hover { background-color: #512DA8; }
+        .pay-btn { background-color: #673AB7; color: white; border: none; padding: 14px 28px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 20px; width: 100%; }
         #status { margin-top: 15px; font-weight: bold; color: #e91e63; }
     </style>
 </head>
@@ -46,28 +19,38 @@
 <div class="container">
     <h1>Welcome to Yetoha</h1>
     <p>Click the button below to process your Pi Testnet transaction and complete your developer setup.</p>
-    
     <button class="pay-btn" onclick="startTestPayment()">Pay 1 Test Pi</button>
     <div id="status"></div>
 </div>
 
 <script>
-    // Initialize the Pi SDK
+    // Initialize Pi SDK in Sandbox Mode
     Pi.init({ version: "2.0", sandbox: true });
 
     async function startTestPayment() {
         const statusDiv = document.getElementById('status');
-        statusDiv.innerText = "Initializing payment...";
+        statusDiv.style.color = "#e91e63";
+        statusDiv.innerText = "Authenticating with Pi Network...";
 
         try {
+            // Request authentication with the required 'payments' scope
+            const scopes = ['payments'];
+            
+            function onIncompletePaymentFound(payment) {
+                console.log("Incomplete payment found", payment);
+            };
+
+            const auth = await Pi.authenticate(scopes, onIncompletePaymentFound);
+            statusDiv.innerText = "Authenticated! Launching wallet...";
+
+            // Trigger the payment
             const payment = await Pi.createPayment({
                 amount: 1.0,
                 memo: "Testing Yetoha App Production Setup",
                 metadata: { appId: "Yetoha" },
             }, {
                 onReadyForServerApproval: function(paymentId) {
-                    statusDiv.innerText = "Payment ready. Approving on server...";
-                    // For setup validation purposes, the Pi sandbox will guide you through approval
+                    statusDiv.innerText = "Payment ready. Please approve.";
                 },
                 onReadyForServerCompletion: function(paymentId, txid) {
                     statusDiv.innerText = "Completing transaction...";
@@ -83,7 +66,7 @@
             statusDiv.style.color = "green";
             statusDiv.innerText = "Payment Successful!";
         } catch (err) {
-            statusDiv.innerText = "Error launching wallet: " + err.message;
+            statusDiv.innerText = "Error: " + err.message;
         }
     }
 </script>
