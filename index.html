@@ -18,7 +18,7 @@
 
 <div class="container">
     <h1>Welcome to Yetoha</h1>
-    <p>Click the button below to process your Pi Testnet transaction and complete your developer setup.</p>
+    <p>Click below to complete your developer setup transaction.</p>
     <button class="pay-btn" onclick="startTestPayment()">Pay 1 Test Pi</button>
     <div id="status"></div>
 </div>
@@ -27,33 +27,37 @@
     // Initialize Pi SDK in Sandbox Mode
     Pi.init({ version: "2.0", sandbox: true });
 
+    // Automatically authenticate the user when the page loads
+    window.onload = async function() {
+        try {
+            await Pi.authenticate(['payments'], function(payment) {
+                console.log("Incomplete payment", payment);
+            });
+            document.getElementById('status').innerText = "Pi Wallet Connected!";
+            document.getElementById('status').style.color = "green";
+        } catch (err) {
+            document.getElementById('status').innerText = "Please open this inside the Pi Browser.";
+        }
+    };
+
     async function startTestPayment() {
         const statusDiv = document.getElementById('status');
         statusDiv.style.color = "#e91e63";
-        statusDiv.innerText = "Authenticating with Pi Network...";
+        statusDiv.innerText = "Opening wallet overlay...";
 
         try {
-            // Request authentication with the required 'payments' scope
-            const scopes = ['payments'];
-            
-            function onIncompletePaymentFound(payment) {
-                console.log("Incomplete payment found", payment);
-            };
-
-            const auth = await Pi.authenticate(scopes, onIncompletePaymentFound);
-            statusDiv.innerText = "Authenticated! Launching wallet...";
-
-            // Trigger the payment
             const payment = await Pi.createPayment({
                 amount: 1.0,
                 memo: "Testing Yetoha App Production Setup",
                 metadata: { appId: "Yetoha" },
             }, {
                 onReadyForServerApproval: function(paymentId) {
-                    statusDiv.innerText = "Payment ready. Please approve.";
+                    statusDiv.innerText = "Simulating server approval...";
+                    // Tell the Pi Network to open the user's input screen directly
+                    statusDiv.innerText = "Check your screen for wallet passphrase entry!";
                 },
                 onReadyForServerCompletion: function(paymentId, txid) {
-                    statusDiv.innerText = "Completing transaction...";
+                    statusDiv.innerText = "Finalizing transaction...";
                 },
                 onCancel: function(paymentId) {
                     statusDiv.innerText = "Transaction cancelled.";
@@ -64,7 +68,7 @@
             });
             
             statusDiv.style.color = "green";
-            statusDiv.innerText = "Payment Successful!";
+            statusDiv.innerText = "Payment Processed!";
         } catch (err) {
             statusDiv.innerText = "Error: " + err.message;
         }
@@ -72,4 +76,4 @@
 </script>
 
 </body>
-</html>
+</html> 
